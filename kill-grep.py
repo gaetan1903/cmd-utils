@@ -1,3 +1,5 @@
+#!/usr/bin/python
+
 import os, re, sys
 
 v = os.popen("ps -eo pid,command |grep -v grep|grep " + sys.argv[1]).read().split("\n")
