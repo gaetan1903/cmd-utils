@@ -73,8 +73,8 @@ if [ $? -eq 0 ]; then
     		
     		echo -e "En cours depuis $res heures de temps \n\n"
 
-    		# on kill le processus present
-            kill-grep $1
+    		# on kill le processus present different de celui-ci
+            kill-grep "$1 |grep -v $0"
             echo -e "\n Lancement du '$@' \n"
             # On lance le scripten arriere plan
             $@ &
