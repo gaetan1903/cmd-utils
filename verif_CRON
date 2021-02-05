@@ -1,0 +1,92 @@
+#!/bin/bash
+
+# script de verification de n'importe quelle script, 
+# suffit de mettre en argument le script en question (chemin absolue)
+# ex: verif_CRON php /var/www/htdocs/custom/dispatch_sbc/statut_agent_connecte_dispatch_wazo.php
+
+
+# fonction affichant un output d'aide au cas de mauvaise utilisation de la commande
+usage() { echo -e "Usage: $0 [-t <nombre (temps en heure)>] SCRIPT\n" 1>&2; exit 1; }
+
+
+# Analyse des parametres entrée avec la commande
+while getopts "t:" option; do
+    case "${option}" in
+        t)
+            t=${OPTARG}
+
+            if [ -n "$t" ] && [ "$t" -eq "$t" ] ; then
+              echo "Processus redemmarer apres $t heures de marche."
+            else
+              usage
+            fi
+            ;;
+        *)
+            usage
+            ;;
+    esac
+done
+shift $((OPTIND-1))
+
+
+# VERIFICATION SCRIPT 
+if [ $# -le 0 ] ; then
+    # le script a verifier est manquant
+    echo -e "Le SCRIPT est manquant \n"; usage
+
+elif [ $# -eq 1 ] ; then
+    # cas d'une seule chaine de script
+    # ex: /var/www/monscript.sh
+
+    proc=`ps -eo pid,start,command --sort -start|grep $1 |grep -v grep |grep -v $0`
+
+elif [ $# -ge 2 ] ; then
+    # cas de plusieurs chaine de script
+    # ex: php /var/www/htdocs/custom/dispatch_sbc/statut_agent_connecte_dispatch_wazo.php
+    # ex: php /var/www/htdocs/custom/statistiquestelephonie/scripts/verifCron_rattrapage.php 20201101 20210201 > /var/www/htdocs/custom/statstel_rattrapage_20210201.txt
+    
+    # on verifie que les deux premieres chaines
+    proc=`ps -eo pid,start,command --sort -start|grep $1 |grep $2 |grep -v grep |grep -v $0`
+fi
+
+
+if [ $? -eq 0 ]; then
+	# cas ou le script est en cours
+
+    # on verifie que le parametre temps de kill est present
+    if [ ! -z "${t}" ] ; then
+
+        # on recupere l'heure du lancement du script
+        proc_start=`echo $proc |cut -d ' ' -f 2`
+
+        # on calcul la difference avec l'heure actuel
+        res=`date -u -d @$(( $(date +%s) - $(date -d $proc_start +%s) )) +%H`
+        let "res=$res"
+
+        if [ $res -lt $t ]; then
+        	# cas ou le script fonctionne moins d'1 heure
+
+        	# Ne rien faire
+            echo -e "\nscript '$@' deja en cours\n"
+        else
+        	# cas ou le script tourne depuis +1heure 
+    		
+    		echo -e "En cours depuis $res heures de temps \n\n"
+
+    		# on kill le processus present
+            kill-grep $1
+            echo -e "\n Lancement du '$@' \n"
+            # On lance le scripten arriere plan
+            $@ &
+        fi
+    else
+        echo -e "\nscript '$@' deja en cours\n"
+    fi
+
+else
+	# cas ou le script n'est pas en cours
+
+    echo -e "\n Lancement du '$@' \n"
+    # On lance le script en arriere plan
+    $@ &
+fi
