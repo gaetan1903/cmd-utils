@@ -6,20 +6,31 @@
 
 
 # fonction affichant un output d'aide au cas de mauvaise utilisation de la commande
-usage() { echo -e "Usage: $0 [-t <nombre (temps en heure)>] SCRIPT\n" 1>&2; exit 1; }
+usage() { 
+    echo -e "Usage: $0 [-t <heures>] [-x <chaines>] SCRIPT\n" 1>&2;
+    echo -e "-t (optionnel): temps de relance du script en heures [Pas de relance par defaut]" 1>&2;
+    echo -e "-x (optionnel): argument pour le lancement du grep [2 premiers argument par defaut]\n" 1>&2;
+    echo -e "exemples: \n  verif_CRON -t 1 php /var/www/htdocs/custom/vigie/scripts/critere_alerte.php" 1>&2;
+    echo -e "  verif_CRON -t 1 -x critere_alerte.php php /var/www/htdocs/custom/vigie/scripts/critere_alerte.php" 1>&2;
+    echo -e "  verif_CRON php /var/www/htdocs/custom/vigie/scripts/critere_alerte.php\n" 1>&2;
+    exit 1;
+}
 
 
 # Analyse des parametres entrée avec la commande
-while getopts "t:" option; do
+while getopts "t:x:" option; do
     case "${option}" in
         t)
             t=${OPTARG}
 
             if [ -n "$t" ] && [ "$t" -eq "$t" ] ; then
-              echo "Processus redemmarer apres $t heures de marche."
+              echo "Processus redemmaree apres $t heures de marche."
             else
               usage
             fi
+            ;;
+        x)
+            x=${OPTARG}
             ;;
         *)
             usage
@@ -33,6 +44,11 @@ shift $((OPTIND-1))
 if [ $# -le 0 ] ; then
     # le script a verifier est manquant
     echo -e "Le SCRIPT est manquant \n"; usage
+
+elif [ ! -z "${x}" ] ; then
+    # cas ou l'argument de verification est donné
+    # ex: veirf_CRON -x loopScript php loopScript.php
+    proc=`ps -eo pid,start,command --sort -start|grep $x |grep -v grep |grep -v $0`
 
 elif [ $# -eq 1 ] ; then
     # cas d'une seule chaine de script
@@ -64,12 +80,12 @@ if [ $? -eq 0 ]; then
         let "res=$res"
 
         if [ $res -lt $t ]; then
-        	# cas ou le script fonctionne moins d'1 heure
+        	# cas ou le script fonctionne moins de t heures
 
         	# Ne rien faire
             echo -e "\nscript '$@' deja en cours\n"
         else
-        	# cas ou le script tourne depuis +1heure 
+        	# cas ou le script tourne depuis +t heures
     		
     		echo -e "En cours depuis $res heures de temps \n\n"
 
