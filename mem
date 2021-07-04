@@ -1,0 +1,8 @@
+#!/bin/bash
+
+
+if [ "$1" = "" ] ; then
+	ps -eo size,pid,user,command --sort -size | awk '{ hr=$1/1024 ; printf("%13.2f Mb ",hr) } { for ( x=4 ; x<=NF ; x++ ) { printf("%s ",$x) } print "" }'
+else
+  ps aux | grep $1 | grep -v grep | awk 'BEGIN { sum=0 } {sum=sum+$6; } END {printf("%s Mo\n",sum / 1024)}'
+fi
