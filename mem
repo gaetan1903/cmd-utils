@@ -4,5 +4,5 @@ proc=$1
 if [ "$proc" = "" ] ; then
 	ps -eo size,pid,user,command --sort -size | awk '{ hr=$1/1024 ; printf("%13.2f Mb ",hr) } { for ( x=4 ; x<=NF ; x++ ) { printf("%s ",$x) } print "" }'
 else
-  ps -eo size,pid,command | grep $proc | awk 'BEGIN {sum=0} {sum=sum+$1;} END {printf("$proc:%13.2f Mb ",sum / 1024)}'
+  ps -eo size,pid,command | grep $proc | awk 'BEGIN {sum=0} {sum=sum+$1;} END {printf("%s:%13.2f Mb ", $proc, sum / 1024)}'
 fi
