@@ -2,6 +2,9 @@
 
 import os, re, sys
 
+if len(sys.argv) < 2:
+    sys.exit(1)
+
 v = os.popen("ps -eo pid,command |grep -v grep|grep " + sys.argv[1]).read().split("\n")
 
 print(len(v)-1, "processus trouvee")
