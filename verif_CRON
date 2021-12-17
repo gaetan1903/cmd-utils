@@ -2,7 +2,7 @@
 
 # script de verification de n'importe quelle script, 
 # suffit de mettre en argument le script en question (chemin absolue)
-# ex: verif_CRON php /var/www/htdocs/custom/dispatch_sbc/statut_agent_connecte_dispatch_wazo.php
+# ex: verif_CRON php /root/monsuperscript.php
 
 # utile pour l'output de l'erreur
 rouge='\e[0;31m'
@@ -13,10 +13,10 @@ vert='\e[0;32m'
 usage() { 
     echo -e "Usage: ${vert}$0 [-t <heures>] [-x <chaines>] SCRIPT\n${neutre}" 1>&2;
     echo -e "-t (optionnel): temps de relance du script en heures [Pas de relance par defaut]" 1>&2;
-    echo -e "-x (optionnel): argument pour le lancement du grep [2 premiers argument par defaut]\n" 1>&2;
-    echo -e "exemples: \n  verif_CRON -t 1 php /var/www/htdocs/custom/vigie/scripts/critere_alerte.php" 1>&2;
-    echo -e "  verif_CRON -t 1 -x critere_alerte.php php /var/www/htdocs/custom/vigie/scripts/critere_alerte.php" 1>&2;
-    echo -e "  verif_CRON php /var/www/htdocs/custom/vigie/scripts/critere_alerte.php\n" 1>&2;
+    echo -e "-x (optionnel): argument pour le lancement du grep (texte d'identification du processus)\n" 1>&2;
+    echo -e "exemples: \n  verif_CRON -t 1 php /var/www/alerte.php" 1>&2;
+    echo -e "  verif_CRON -t 1 -x critere_alerte.php php /var/www/critere_alerte.php" 1>&2;
+    echo -e "  verif_CRON php /var/www/scripts/critere_alerte.php\n" 1>&2;
     exit 1;
 }
 
@@ -51,7 +51,7 @@ if [ $# -le 0 ] ; then
 
 elif [ ! -z "${x}" ] ; then
     # cas ou l'argument de verification est donné
-    # ex: veirf_CRON -x loopScript php loopScript.php
+    # ex: verif_CRON -x loopScript php loopScript.php
     proc=`ps -eo pid,start,command --sort -start|grep $x |grep -v grep |grep -v $0`
 
 elif [ $# -eq 1 ] ; then
@@ -60,13 +60,22 @@ elif [ $# -eq 1 ] ; then
 
     proc=`ps -eo pid,start,command --sort -start|grep $1 |grep -v grep |grep -v $0`
 
-elif [ $# -ge 2 ] ; then
-    # cas de plusieurs chaine de script
-    # ex: php /var/www/htdocs/custom/dispatch_sbc/statut_agent_connecte_dispatch_wazo.php
-    # ex: php /var/www/htdocs/custom/statistiquestelephonie/scripts/verifCron_rattrapage.php 20201101 20210201 > /var/www/htdocs/custom/statstel_rattrapage_20210201.txt
+elif [ $# -eq 2 ] ; then
+    # cas de 2 chaine de script
+    # ex: php /var/www/script/statut.php
+    # ex: python /var/www/script/stop.py
     
     # on verifie que les deux premieres chaines
     proc=`ps -eo pid,start,command --sort -start|grep $1 |grep $2 |grep -v grep |grep -v $0`
+
+elif [ $# -ge 3 ] ; then
+    # cas de plusieurs chaine de script est donéée
+    # ex: php /var/stat.php 2021 
+    # ex: php /var/www/script/stat_mois.php 11 
+
+    # on stop est demande à l'utilisateur d'ajouté l'argument du verification.
+    echo -e "${rouge}Pour un script de +2 chaînes, le parametre verification est requis [-x <chaines>] \nex: $0 -x loopScript php loopScript.php\n${neutre}";
+    usage;
 fi
 
 
