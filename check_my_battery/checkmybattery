@@ -8,11 +8,11 @@ charge=`acpi -b | grep -P -o 'Charging|Discharging'`
 if [ $battery_level -le 10 ] && [ "$charge" == 'Discharging' ] ;
 then 
 	DISPLAY=:0 /usr/bin/notify-send -u critical -t 10000 -i ~/.icons/Tela-circle-manjaro/24/panel/battery-low.svg  "Efa ho faty gognanao: $battery_level%";
-	python -c "from playsound import playsound; playsound('/home/hck1903/Musique/battery_low')"
+	python -c "from playsound import playsound; playsound('/home/$USER/Musique/battery_low')"
 fi
 
 if [ $battery_level -eq 100 ] && [ "$charge" == 'Charging' ] ;
 then 
 	DISPLAY=:0 /usr/bin/notify-send -t 5000 -i ~/.icons/Tela-circle-manjaro/24/panel/battery-full.svg "Efa feno lesy e: $battery_level%";
-	python -c "from playsound import playsound; playsound('/home/hck1903/Musique/battery_full')"
+	python -c "from playsound import playsound; playsound('/home/$USER/Musique/battery_full')"
 fi
