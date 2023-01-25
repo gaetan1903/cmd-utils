@@ -11,9 +11,10 @@ vert='\e[0;32m'
 
 # fonction affichant un output d'aide au cas de mauvaise utilisation de la commande
 usage() { 
-    echo -e "Usage: ${vert}$0 [-t <heures>] [-x <chaines>] SCRIPT\n${neutre}" 1>&2;
+    echo -e "Usage: ${vert}$0 [-t <heures>] [-x <chaines>] [-p <port>] SCRIPT\n${neutre}" 1>&2;
     echo -e "-t (optionnel): temps de relance du script en heures [Pas de relance par defaut]" 1>&2;
-    echo -e "-x (optionnel): argument pour le lancement du grep (texte d'identification du processus)\n" 1>&2;
+    echo -e "-x (optionnel): argument pour le lancement du grep (texte d'identification du processus)" 1>&2;
+    echo -e "-p (optionnel): verification du processus par le port utilisé\n" 1>&2;
     echo -e "exemples: \n  verif_CRON -t 1 php /var/www/alerte.php" 1>&2;
     echo -e "  verif_CRON -t 1 -x critere_alerte.php php /var/www/critere_alerte.php" 1>&2;
     echo -e "  verif_CRON php /var/www/scripts/critere_alerte.php\n" 1>&2;
@@ -22,7 +23,7 @@ usage() {
 
 
 # Analyse des parametres entrée avec la commande
-while getopts "t:x:" option; do
+while getopts "t:x:p:" option; do
     case "${option}" in
         t)
             t=${OPTARG}
@@ -33,6 +34,16 @@ while getopts "t:x:" option; do
               usage
             fi
             ;;
+
+        p)
+            p=${OPTARG}
+            if [ -n "$p" ] && [ "$p" -eq "$p" ] ; then
+                echo "Processus à verifier sur le port: $p"
+            else
+                usage
+            fi
+            ;;
+
         x)
             x=${OPTARG}
             ;;
@@ -50,9 +61,24 @@ if [ $# -le 0 ] ; then
     echo -e "${rouge}Le SCRIPT est manquant \n${neutre}"; usage
 
 elif [ ! -z "${x}" ] ; then
+
+    if [ ! -z "${p}" ]; then
+        echo -e "${rouge}Parametre '-x' et '-p' ne peut pas être utilisé en même temps. \n${neutre}"; usage
+    fi
+
     # cas ou l'argument de verification est donné
     # ex: verif_CRON -x loopScript php loopScript.php
     proc=`ps -eo pid,start,command --sort -start|grep $x |grep -v grep |grep -v $0`
+
+elif [ ! -z "${p}" ] ; then
+    # recuperation du pid du process qui ecoute sur le port
+    pid=`lsof -t -i:$p`
+    if [ $? -eq 0 ]; then
+        proc=`ps -eo pid,start,command --sort -start|grep $pid`
+    else
+        # simuler un exit 1 erreur pour dire que le grep n'a rien trouvé.
+        false
+    fi
 
 elif [ $# -eq 1 ] ; then
     # cas d'une seule chaine de script
@@ -93,32 +119,37 @@ if [ $? -eq 0 ]; then
         let "res=$res"
 
         if [ $res -lt $t ]; then
-        	# cas ou le script fonctionne moins de t heures
-
+		# cas ou le script fonctionne moins de t heures
         	# Ne rien faire
-            echo -e "\nscript '$@' deja en cours\n"
+            	echo -e "\nscript '$@' deja en cours\n"
         else
-        	# cas ou le script tourne depuis +t heures
-    		
-    		echo -e "En cours depuis $res heures de temps \n\n"
+		# cas ou le script tourne depuis +t heures
+
+		echo -e "En cours depuis $res heures de temps \n\n"
 
     		# on kill le processus present different de celui-ci
-            # on ajout grep -v $0 pour eviter le suicide
+		# on ajout grep -v $0 pour eviter le suicide
 
-            if [ ! -z "${x}" ] ; then
-			   kill-grep "$x |grep -v $0"
-			elif [ $# -eq 1 ] ; then
-				kill-grep "$1 |grep -v $0"
-			elif [ $# -ge 2 ] ; then
-				kill-grep "$1 |grep $2 |grep -v $0"
-			fi
+		if [ ! -z "${x}" ] ; then
+			kill-grep "$x |grep -v $0"
+		elif [ ! -z "${p}" ] ; then 
+			kill -9 $pid
+		elif [ $# -eq 1 ] ; then
+			kill-grep "$1 |grep -v $0"
+		elif [ $# -ge 2 ] ; then
+			kill-grep "$1 |grep $2 |grep -v $0"
+		fi
             
             echo -e "\n Lancement du '$@' \n"
             # On lance le script en arriere plan
             $@ &
         fi
     else
-        echo -e "\nscript '$@' deja en cours\n"
+        if [ ! -z "${p}" ] ; then 
+            echo -e "\nPort '$p' dèjà en ecoute\n"
+        else
+            echo -e "\nscript '$@' deja en cours\n"
+        fi
     fi
 
 else
