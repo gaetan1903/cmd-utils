@@ -74,7 +74,7 @@ elif [ ! -z "${p}" ] ; then
     # recuperation du pid du process qui ecoute sur le port
     pid=`lsof -t -i:$p`
     if [ $? -eq 0 ]; then
-        proc=`ps -eo pid,start,command --sort -start|grep $pid`
+        proc=`ps -eo pid,start,command --sort -start|grep $pid |grep -v grep |grep -v $0`
     else
         # simuler un exit 1 erreur pour dire que le grep n'a rien trouvé.
         false
